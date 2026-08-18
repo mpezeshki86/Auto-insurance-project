@@ -16,4 +16,5 @@ sum(claimnb)/sum(exposure) as Total_claim_freq
 from c
 group by c.age_cat
 
---testgjghjhj
+Select*
+from policy_frequency;
