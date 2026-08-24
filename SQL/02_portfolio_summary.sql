@@ -161,3 +161,134 @@ ORDER BY
 -- risk-segmentation variable for claim frequency.
 -- The 151+ group contains only 209 records, so its observed frequency
 -- should be interpreted cautiously due to the relatively small sample size.
+
+SELECT
+    vehgas AS fuel_type,
+    COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY vehgas
+ORDER BY vehgas;
+
+-- FINDING:
+-- Regular-fuel vehicles have a slightly higher observed claim frequency
+-- (0.1036) than Diesel vehicles (0.0976).
+-- The difference is modest compared with the stronger patterns observed
+-- for driver age and BonusMalus.
+-- Fuel type may contribute to risk segmentation, but the unadjusted
+-- difference alone does not establish a causal relationship.
+
+SELECT
+	vehpower AS vehicle_power,
+	COUNT(*) AS policy_records,
+	SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY vehpower
+ORDER BY vehpower;
+
+-- FINDING:
+-- Claim frequency varies across vehicle power levels but does not show
+-- a clear monotonic relationship with VehPower.
+-- VehPower 10 has the highest observed frequency at 0.1164,
+-- while VehPower 8 has the lowest at 0.0847.
+-- Higher vehicle power does not consistently correspond to higher claim frequency.
+-- VehPower may still contribute to risk segmentation when considered
+-- alongside other policyholder and vehicle characteristics.
+
+SELECT
+	area,
+	COUNT(*) AS policy_records,
+	SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY area
+ORDER BY area;
+
+
+-- FINDING:
+-- Observed claim frequency increases consistently from Area A to Area F.
+-- Area A has the lowest claim frequency at 0.0817, while Area F
+-- has the highest at 0.1391.
+-- Area F's observed claim frequency is approximately 70% higher than Area A's.
+-- This suggests geographic area is an important risk-segmentation variable.
+-- These are unadjusted frequencies and should not be interpreted as causal effects.
+
+ 
+
+SELECT
+    density_quartiles,
+    MIN(density) AS min_density,
+    MAX(density) AS max_density,
+    COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM (
+    SELECT
+        density,
+        claimnb,
+        exposure,
+        NTILE(4) OVER (ORDER BY density) AS density_quartiles
+    FROM policy_frequency
+) AS subquery
+GROUP BY density_quartiles
+ORDER BY density_quartiles;
+
+-- FINDING:
+-- Observed claim frequency increases steadily across population-density quartiles.
+-- The lowest-density quartile has a claim frequency of 0.0841,
+-- while the highest-density quartile has a frequency of 0.1252.
+-- This suggests higher population density is associated with higher observed claim frequency.
+-- These are unadjusted frequencies and should not be interpreted as causal effects.
+-- Density quartiles contain approximately equal numbers of policy records.
+-- Quartile density ranges overlap at some boundary values because NTILE()
+-- may split records with identical density values across adjacent quartiles.
+
+
+SELECT
+	region,
+	COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY region
+ORDER BY region;
+
+-- FINDING:
+-- Claim frequency varies meaningfully across geographic regions.
+-- R94 has the highest observed claim frequency at 0.1399,
+-- followed by R21 at 0.1327 and R11 at 0.1317.
+-- R41 has the lowest observed claim frequency at 0.0753.
+-- Some of the highest-frequency regions, including R94 and R21,
+-- have relatively limited exposure, so their results should be
+-- interpreted more cautiously.
+-- R11 also shows a high claim frequency and is supported by
+-- substantially greater exposure.
+-- Region appears to be a potentially important geographic
+-- risk-segmentation variable.
+
+-- ============================================================
+-- STEP 3 SUMMARY
+-- ============================================================
+-- Overall portfolio claim frequency is approximately 0.1007.
+--
+-- Strong risk-segmentation patterns were observed for:
+-- 1. BonusMalus: claim frequency increases substantially as BonusMalus rises.
+-- 2. Driver age: drivers aged 18-24 have substantially higher claim frequency.
+-- 3. Geographic area: claim frequency increases from Area A through Area F.
+-- 4. Population density: higher-density quartiles have higher claim frequency.
+-- 5. Region: meaningful geographic variation in claim frequency is present.
+--
+-- Vehicle age also shows meaningful differences in observed claim frequency.
+-- Fuel type shows a relatively modest difference.
+-- Vehicle power does not exhibit a clear monotonic relationship with claim frequency.
+--
+-- These results are descriptive and unadjusted. Differences between groups
+-- represent associations in the observed portfolio and should not be
+-- interpreted as causal effects.
