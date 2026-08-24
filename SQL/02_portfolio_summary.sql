@@ -47,3 +47,117 @@ FROM policy_frequency;
 -- 34,060 policy records had at least one claim, while 643,953 had no claims.
 -- Approximately 5.02% of policy records experienced at least one claim.
 -- This differs from claim frequency, which accounts for policy exposure.
+
+
+SELECT
+    CASE 
+        WHEN drivage BETWEEN 18 AND 24 THEN '18 to 24'
+        WHEN drivage BETWEEN 25 AND 34 THEN '25 to 34'
+        WHEN drivage BETWEEN 35 AND 44 THEN '35 to 44'
+        WHEN drivage BETWEEN 45 AND 54 THEN '45 to 54'
+        WHEN drivage BETWEEN 55 AND 64 THEN '55 to 64'
+        WHEN drivage >= 65 THEN '65+'
+        ELSE 'Unknown'
+    END AS age_category,
+    COUNT(*) AS policy_records
+FROM policy_frequency
+GROUP BY age_category
+ORDER BY age_category;
+
+-- FINDING:
+-- The portfolio is concentrated among middle-aged drivers.
+-- Ages 35-44 represent the largest group, followed by ages 45-54.
+-- Drivers aged 18-24 represent the smallest age group.
+-- All records were successfully assigned to an age category.
+
+SELECT
+    CASE 
+        WHEN drivage BETWEEN 18 AND 24 THEN '18 to 24'
+        WHEN drivage BETWEEN 25 AND 34 THEN '25 to 34'
+        WHEN drivage BETWEEN 35 AND 44 THEN '35 to 44'
+        WHEN drivage BETWEEN 45 AND 54 THEN '45 to 54'
+        WHEN drivage BETWEEN 55 AND 64 THEN '55 to 64'
+        WHEN drivage >= 65 THEN '65+'
+        ELSE 'Unknown'
+    END AS age_category,
+    COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY age_category
+ORDER BY age_category;
+
+-- FINDING:
+-- Drivers aged 18-24 have the highest observed claim frequency at 0.1893
+-- (18.93 claims per 100 policy-years), substantially above the portfolio average.
+-- Drivers aged 55-64 have the lowest observed claim frequency at 0.0912.
+-- Claim frequency varies meaningfully across driver age groups,
+-- suggesting driver age is an important risk segmentation variable.
+
+SELECT
+    CASE 
+        WHEN vehage BETWEEN 0 AND 10 THEN '0 to 10'
+        WHEN vehage BETWEEN 11 AND 20 THEN '11 to 20'
+        WHEN vehage >=21 THEN '21+'
+        ELSE 'Unknown'
+    END AS vehage_category,
+    COUNT(*) AS policy_records
+FROM policy_frequency
+GROUP BY vehage_category
+ORDER BY vehage_category;
+
+-- FINDING:
+-- Most policy records involve vehicles aged 0-10 years, followed by vehicles aged 11-20 years.
+-- Very old vehicle groups contained relatively few records, so vehicles aged 21+ were combined into one category
+-- to improve the stability and interpretability of claim-frequency comparisons.
+
+SELECT
+    CASE 
+        WHEN vehage BETWEEN 0 AND 10 THEN '0 to 10'
+        WHEN vehage BETWEEN 11 AND 20 THEN '11 to 20'
+        WHEN vehage >=21 THEN '21+'
+        ELSE 'Unknown'
+    END AS vehage_category,
+    COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY vehage_category
+ORDER BY vehage_category;
+
+-- FINDING:
+-- Vehicles aged 0-10 years have the highest observed claim frequency at 0.1099
+-- (10.99 claims per 100 policy-years).
+-- Claim frequency decreases to 0.0808 for vehicles aged 11-20 years
+-- and 0.0536 for vehicles aged 21+ years.
+-- This suggests vehicle age may be an important risk segmentation variable.
+-- These are unadjusted observed frequencies and should not be interpreted as causal effects.
+
+SELECT
+    CASE 
+        WHEN bonusmalus = 50 THEN '50'
+        WHEN bonusmalus BETWEEN 51 AND 75 THEN '51 to 75'
+		WHEN bonusmalus BETWEEN 76 AND 100 THEN '76 to 100'
+		WHEN bonusmalus BETWEEN 101 AND 150 THEN '101 to 150'
+        WHEN bonusmalus >=151 THEN '151+'
+        ELSE 'Unknown'
+    END AS bonusmalus_category,
+    COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency
+FROM policy_frequency
+GROUP BY bonusmalus_category
+ORDER BY 
+	MIN(bonusmalus);
+
+-- FINDING:
+-- Observed claim frequency increases substantially as BonusMalus increases.
+-- Policies with BonusMalus = 50 have the lowest observed frequency at 0.0802,
+-- while the 151+ group has the highest frequency at 0.5677.
+-- This strong monotonic pattern suggests BonusMalus is an important
+-- risk-segmentation variable for claim frequency.
+-- The 151+ group contains only 209 records, so its observed frequency
+-- should be interpreted cautiously due to the relatively small sample size.
