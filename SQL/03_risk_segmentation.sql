@@ -159,3 +159,41 @@ ORDER BY area, MIN(bonusmalus);
 -- The 101+ BonusMalus segments contain substantially less exposure than
 -- the lower BonusMalus groups, particularly in Area F, so their observed
 -- frequencies should be interpreted more cautiously.
+
+SELECT
+	area,
+    CASE 
+        WHEN bonusmalus = 50 THEN '50'
+        WHEN bonusmalus BETWEEN 51 AND 75 THEN '51 to 75'
+		WHEN bonusmalus BETWEEN 76 AND 100 THEN '76 to 100'
+        WHEN bonusmalus >=101 THEN '101+'
+        ELSE 'Unknown'
+    END AS bonusmalus_category,
+    COUNT(*) AS policy_records,
+    SUM(claimnb) AS total_claims,
+    SUM(exposure) AS total_exposure,
+    ROUND((SUM(claimnb) / SUM(exposure))::numeric, 4) AS claim_frequency,
+	RANK() OVER (
+    ORDER BY SUM(claimnb) / SUM(exposure) DESC
+) AS risk_rank
+FROM policy_frequency
+GROUP BY area, bonusmalus_category
+HAVING SUM(exposure) >= 500
+ORDER BY risk_rank;
+
+-- FINDING:
+-- After restricting the analysis to segments with at least 500
+-- policy-years of exposure, Area D with BonusMalus 101+ has the
+-- highest observed claim frequency (0.4051), followed by Area E
+-- with BonusMalus 101+ (0.3872) and Area C with BonusMalus 101+
+-- (0.3644).
+--
+-- The lowest observed frequencies occur among BonusMalus 50
+-- segments, particularly Area A (0.0693) and Area B (0.0704).
+--
+-- The ranking reinforces the strong risk segmentation observed
+-- for BonusMalus while also showing geographic differences within
+-- BonusMalus categories.
+--
+-- Segments with less than 500 policy-years of exposure were excluded
+-- from the ranking to reduce the influence of low-exposure segments.

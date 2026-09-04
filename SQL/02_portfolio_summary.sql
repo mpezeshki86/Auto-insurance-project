@@ -274,6 +274,9 @@ ORDER BY region;
 -- risk-segmentation variable.
 
 -- ============================================================
+
+
+
 -- STEP 3 SUMMARY
 -- ============================================================
 -- Overall portfolio claim frequency is approximately 0.1007.
